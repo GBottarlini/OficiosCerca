@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Oficios Cerca | Encontrá profesionales</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header>
+  <nav class="nav" aria-label="Principal">
+    <div class="brand" aria-label="Oficios Cerca, inicio">Oficios<span>Cerca</span></div>
+  </nav>
+</header>
+
+<main class="wrap">
+  <section class="hero" aria-labelledby="hero-title">
+    <h1 id="hero-title">Encontrá profesionales de confianza</h1>
+    <p class="muted">Electricistas, plomeros, carpinteros, gasistas, jardineros y más. Contacto directo, sin vueltas.</p>
+    <div class="controls" role="search">
+      <label>
+        <span class="sr">Buscar por oficio o nombre</span>
+        <input id="q" placeholder="Buscar por oficio, especialidad o nombre (p. ej. 'electricista', 'Ana')"/>
+      </label>
+      <label>
+        <span class="sr">Filtrar por categoría</span>
+        <select id="cat">
+          <option value="">Todas las categorías</option>
+          <option>Electricidad</option><option>Plomería</option><option>Carpintería</option>
+          <option>Gas</option><option>Pintura</option><option>Albañilería</option>
+          <option>Herrería</option><option>Jardinería</option><option>Limpieza</option>
+          <option>Electrodomésticos</option>
+        </select>
+      </label>
+      <label>
+        <span class="sr">Filtrar por ciudad</span>
+        <input id="city" placeholder="Ciudad (p. ej. Córdoba, Rosario)" />
+      </label>
+    </div>
+    <div class="toolbar">
+      <button id="seed">Cargar ejemplos</button>
+      <button id="reset" class="secondary">Resetear demo</button>
+    </div>
+  </section>
+
+  <section class="grid" aria-label="Contenido principal">
+    <div class="panel" aria-labelledby="list-title">
+      <h2 id="list-title" style="margin:6px 0 12px 0;">Profesionales</h2>
+      <div id="list" class="list" aria-live="polite"></div>
+      <p id="empty" class="muted" style="display:none;margin-top:8px;">No hay resultados con esos filtros.</p>
+    </div>
+
+    <aside class="panel" aria-labelledby="post-title">
+      <h2 id="post-title" style="margin:6px 0 12px 0;">Publicar tu servicio</h2>
+      <form id="postForm" aria-describedby="post-help">
+        <div class="form-grid">
+          <label>Nombre
+            <input name="name" required placeholder="Tu nombre o nombre comercial"/>
+          </label>
+          <label>Categoría
+            <select name="category" required>
+              <option value="">Elegí una...</option>
+              <option>Electricidad</option><option>Plomería</option><option>Carpintería</option>
+              <option>Gas</option><option>Pintura</option><option>Albañilería</option>
+              <option>Herrería</option><option>Jardinería</option><option>Limpieza</option>
+              <option>Electrodomésticos</option>
+            </select>
+          </label>
+          <label>Ciudad
+            <input name="city" required placeholder="Ej: Córdoba"/>
+          </label>
+          <label>Teléfono / WhatsApp
+            <input name="phone" required placeholder="+54 9 351..." />
+          </label>
+          <label>Email
+            <input name="email" type="email" placeholder="ejemplo@mail.com" />
+          </label>
+          <label>Tags (coma separadas)
+            <input name="tags" placeholder="urgencias, trifásica, certificado, etc." />
+          </label>
+          <label style="grid-column:1/-1;">Descripción
+            <textarea name="bio" placeholder="Contá brevemente qué hacés y zonas de trabajo"></textarea>
+          </label>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button type="submit">Publicar</button>
+          <button type="button" class="secondary" id="clear">Limpiar</button>
+        </div>
+        <p id="post-help" class="small" style="margin-top:8px;">
+          Demo: los datos se guardan en tu navegador (localStorage). No necesitás backend.
+        </p>
+      </form>
+    </aside>
+  </section>
+</main>
+
+<footer>
+  <div class="foot">© <span id="year"></span> OficiosCerca · Hecho para ser simple, rápido y útil.</div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

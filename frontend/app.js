@@ -1,5 +1,5 @@
 // ==== CONFIG ====
-const API_BASE = 'http://localhost:10000'; // Cambiá por la URL de Render para producción
+const API_BASE = 'https://oficioscerca.onrender.com'; 
 
 // ==== HELPERS UI ====
 const $ = (sel) => document.querySelector(sel);

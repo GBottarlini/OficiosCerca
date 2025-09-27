@@ -1,5 +1,5 @@
 // ====== CONFIG ======
-const API_BASE = 'http://localhost:10000'; // Cambiar por la URL de Render en producción
+const API_BASE = 'https://oficioscerca.onrender.com';
 const TOKEN_KEY = 'oficioscerca:adminToken';
 
 // ====== DOM ======

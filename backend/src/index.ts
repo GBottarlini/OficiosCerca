@@ -1,35 +1,41 @@
-import express from 'express';
-import helmet from 'helmet';
-import cors from 'cors';
-import rateLimit from 'express-rate-limit';
-import 'dotenv/config';
-import prosRouter from './routes/pros';
-import authRouter from './routes/auth';
+import express, { Request, Response } from 'express';
+import cors, { CorsOptions } from 'cors';
+import { prisma } from './prismaClient';
+import authRoutes from './routes/auth';
+import prosRoutes from './routes/pros';
 
 const app = express();
-app.use(helmet());
 app.use(express.json());
 
+// CORS
 const allowed = (process.env.CORS_ORIGIN || '*')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
 
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || allowed.includes('*') || allowed.includes(origin)) return cb(null, true);
-    return cb(new Error('Not allowed by CORS'));
-  }
-}));
+const corsOptions: CorsOptions = {
+  origin(origin, cb) {
+    if (!origin || allowed.includes('*') || allowed.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  },
+  credentials: true
+};
+app.use(cors(corsOptions));
 
-app.use(rateLimit({ windowMs: 60_000, max: 120 }));
+// Health
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({ ok: true });
+});
 
-app.get('/health', (_req, res) => res.json({ ok: true }));
+// Rutas
+app.use('/api/auth', authRoutes);
+app.use('/api/pros', prosRoutes);
 
-app.use('/api/pros', prosRouter);
-app.use('/api/auth', authRouter);
-
-const port = Number(process.env.PORT || 10000);
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+const PORT = Number(process.env.PORT || 10000);
+app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
+  console.log(`Server listening on port ${PORT}`);
 });

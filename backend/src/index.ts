@@ -3,6 +3,7 @@ import cors, { CorsOptions } from 'cors';
 import { prisma } from './prismaClient';
 import authRoutes from './routes/auth';
 import prosRoutes from './routes/pros';
+import seedRoutes from './routes/seed';
 
 const app = express();
 app.use(express.json());
@@ -33,6 +34,7 @@ app.get('/health', (_req: Request, res: Response) => {
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/pros', prosRoutes);
+app.use('/api/seed', seedRoutes);
 
 const PORT = Number(process.env.PORT || 10000);
 app.listen(PORT, () => {

@@ -1,0 +1,30 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"            // dev local - cambia a "postgresql" en Render
+  url      = env("DATABASE_URL")
+}
+
+model Professional {
+  id        Int      @id @default(autoincrement())
+  name      String
+  category  String
+  city      String
+  phone     String
+  email     String?
+  bio       String?
+  tags      String?   // JSON string (SQLite no soporta Json)
+  rating    Float    @default(5.0)
+  status    String   @default("pending") // SQLite no soporta enums nativos
+  createdAt DateTime @default(now())
+}
+
+model AdminUser {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}

@@ -1,145 +1,164 @@
-const $ = sel => document.querySelector(sel);
-const listEl = document.querySelector('#list');
-const emptyEl = document.querySelector('#empty');
-const qEl = document.querySelector('#q');
-const catEl = document.querySelector('#cat');
-const cityEl = document.querySelector('#city');
-const postForm = document.querySelector('#postForm');
-const clearBtn = document.querySelector('#clear');
-const seedBtn = document.querySelector('#seed');
-const resetBtn = document.querySelector('#reset');
+// ==== CONFIG ====
+const API_BASE = 'http://localhost:10000'; // Cambiá por la URL de Render para producción
 
-// Datos de ejemplo (se muestran si no hay nada guardado)
-const demo = [
-  { id: 1, name: 'Ana López', category:'Electricidad', city:'Córdoba',
-    phone:'+54 9 351 555-1111', email:'ana.electricista@example.com',
-    tags:['urgencias','trifásica','tableros'], rating:4.8,
-    bio:'Electricista matriculada. Urgencias 24/7. Zonas: Centro, Nueva Córdoba, Güemes.' },
-  { id: 2, name: 'Juan Pérez', category:'Plomería', city:'Rosario',
-    phone:'+54 9 341 444-2222', email:'juan.plomero@example.com',
-    tags:['destapaciones','termotanque'], rating:4.6,
-    bio:'Plomero gasista. Instalación y mantenimiento. Trabajos con garantía.' },
-  { id: 3, name: 'Carpintería El Roble', category:'Carpintería', city:'CABA',
-    phone:'+54 9 11 333-9876', email:'contacto@elroble.com',
-    tags:['muebles a medida','colocación'], rating:4.9,
-    bio:'Muebles a medida y restauración. Presupuestos sin cargo.' },
-];
+// ==== HELPERS UI ====
+const $ = (sel) => document.querySelector(sel);
+const listEl = $("#list");
+const emptyEl = $("#empty");
+const qEl = $("#q");
+const catEl = $("#cat");
+const cityEl = $("#city");
+const postForm = $("#postForm");
+const clearBtn = $("#clear");
 
-const storeKey = 'oficioscerca:data';
+// Opcionales (si existen en tu HTML; se ocultan porque el backend maneja datos reales)
+const seedBtn = $("#seed");
+const resetBtn = $("#reset");
+if (seedBtn) seedBtn.style.display = "none";
+if (resetBtn) resetBtn.style.display = "none";
 
-function readStore(){
-  try {
-    const raw = localStorage.getItem(storeKey);
-    if(!raw) return null;
-    const parsed = JSON.parse(raw);
-    if(!Array.isArray(parsed)) return null;
-    return parsed;
-  } catch(e){ return null; }
+// ==== HELPERS DE DATOS/FORMATO ====
+function initials(name) {
+  return name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
 }
 
-function loadData(){
-  const data = readStore();
-  // Si no hay nada o está vacío, mostrar demo por defecto
-  if(!data || data.length === 0) return demo.slice();
-  return data;
+function normalize(str) {
+  return (str || "").toString().toLowerCase()
+    .normalize("NFD").replace(/\p{Diacritic}/gu, "");
 }
 
-function saveData(data){
-  localStorage.setItem(storeKey, JSON.stringify(data));
+function telHref(phone) {
+  const digits = (phone || "").replace(/\D+/g, "");
+  return "tel:+" + digits;
+}
+function waHref(phone, text) {
+  const digits = (phone || "").replace(/\D+/g, "");
+  const msg = encodeURIComponent(text || "Hola, vi tu contacto en OficiosCerca y me gustaría consultarte.");
+  return `https://wa.me/${digits}?text=${msg}`;
+}
+function emailHref(email) {
+  const subject = encodeURIComponent("Consulta desde OficiosCerca");
+  const body = encodeURIComponent("Hola, te contacto porque vi tu perfil en OficiosCerca...");
+  return `mailto:${email}?subject=${subject}&body=${body}`;
 }
 
-function seedDemo(){
-  saveData(demo.slice());
-  render();
-  alert('Se cargaron los ejemplos');
+// ==== API ====
+async function loadDataFromApi({ q = "", category = "", city = "" } = {}) {
+  const url = new URL(API_BASE + "/api/pros");
+  if (q) url.searchParams.set("q", q);
+  if (category) url.searchParams.set("category", category);
+  if (city) url.searchParams.set("city", city);
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("Error al obtener profesionales");
+  return res.json(); // [{ id, name, category, city, phone, email?, bio?, tags:[] , rating, status }]
 }
 
-function resetDemo(){
-  localStorage.removeItem(storeKey);
-  render();
-  alert('Demo reseteada. Si no cargás nada, verás los ejemplos por defecto.');
+async function createProfessionalApi(payload) {
+  const res = await fetch(API_BASE + "/api/pros", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    let errMsg = "Error al publicar";
+    try {
+      const body = await res.json();
+      if (body?.error) errMsg = body.error;
+    } catch { /* ignore */ }
+    throw new Error(errMsg);
+  }
+  return res.json(); // { id, status: "pending" }
 }
 
-function initials(name){
-  return name.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
-}
+// ==== RENDER ====
+function renderList(data) {
+  listEl.innerHTML = "";
+  emptyEl.style.display = data.length ? "none" : "block";
 
-function normalize(str){ return (str||'').toString().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,''); }
+  data.forEach(p => {
+    const card = document.createElement("div");
+    card.className = "card";
+    const tags = Array.isArray(p.tags) ? p.tags : [];
+    const ratingStr = (typeof p.rating === "number" ? p.rating.toFixed(1) : "—");
 
-function matches(item){
-  const q = normalize(qEl.value);
-  const c = catEl.value;
-  const city = normalize(cityEl.value);
-  const hayQ = !q || (
-    normalize(item.name).includes(q) ||
-    normalize(item.category).includes(q) ||
-    normalize(item.bio).includes(q) ||
-    (item.tags||[]).some(t=>normalize(t).includes(q))
-  );
-  const hayCat = !c || item.category === c;
-  const hayCity = !city || normalize(item.city).includes(city);
-  return hayQ && hayCat && hayCity;
-}
-
-function telHref(phone){ const digits = phone.replace(/\D+/g,''); return 'tel:+'+digits; }
-function waHref(phone, text){ const digits = phone.replace(/\D+/g,''); const msg = encodeURIComponent(text || 'Hola, vi tu contacto en OficiosCerca y me gustaría consultarte.'); return `https://wa.me/${digits}?text=${msg}`; }
-function emailHref(email){ const subject = encodeURIComponent('Consulta desde OficiosCerca'); const body = encodeURIComponent('Hola, te contacto porque vi tu perfil en OficiosCerca...'); return `mailto:${email}?subject=${subject}&body=${body}`; }
-
-function render(){
-  const data = loadData().filter(matches);
-  listEl.innerHTML = '';
-  emptyEl.style.display = data.length ? 'none' : 'block';
-  data.forEach(p=>{
-    const card = document.createElement('div');
-    card.className = 'card';
     card.innerHTML = `
       <div class="avatar" aria-hidden="true">${initials(p.name)}</div>
       <div>
-        <div class="c-title">${p.name} · <span class="rating">★ ${(p.rating?.toFixed?.(1) || '—')}</span></div>
+        <div class="c-title">${p.name} · <span class="rating">★ ${ratingStr}</span></div>
         <div class="c-sub">${p.category} · ${p.city}</div>
-        <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
-        <div class="c-sub" style="margin-top:6px;">${p.bio||''}</div>
+        <div class="tags">${tags.map(t => `<span class="tag">${t}</span>`).join("")}</div>
+        <div class="c-sub" style="margin-top:6px;">${p.bio || ""}</div>
       </div>
       <div class="actions">
         <a class="iconbtn" href="${waHref(p.phone)}" target="_blank" rel="noopener">WhatsApp</a>
         <a class="iconbtn" href="${telHref(p.phone)}">Llamar</a>
-        ${p.email ? `<a class="iconbtn" href="${emailHref(p.email)}">Email</a>` : ''}
+        ${p.email ? `<a class="iconbtn" href="${emailHref(p.email)}">Email</a>` : ""}
       </div>
     `;
     listEl.appendChild(card);
   });
 }
 
-qEl.addEventListener('input', render);
-catEl.addEventListener('change', render);
-cityEl.addEventListener('input', render);
+let renderTimer = null;
+async function renderFromApi() {
+  // Evita múltiples requests seguidos mientras el usuario escribe
+  if (renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(async () => {
+    try {
+      const q = qEl?.value || "";
+      const category = catEl?.value || "";
+      const city = cityEl?.value || "";
+      const data = await loadDataFromApi({ q, category, city });
+      renderList(data);
+    } catch (err) {
+      console.error(err);
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "No se pudo cargar el listado. Reintentá en unos segundos.";
+    }
+  }, 150);
+}
 
-postForm.addEventListener('submit', (e)=>{
-  e.preventDefault();
-  const form = new FormData(postForm);
-  const data = readStore() || [];
-  const newItem = {
-    id: Date.now(),
-    name: form.get('name').toString().trim(),
-    category: form.get('category'),
-    city: form.get('city').toString().trim(),
-    phone: form.get('phone').toString().trim(),
-    email: (form.get('email')||'').toString().trim(),
-    tags: (form.get('tags')||'').toString().split(',').map(t=>t.trim()).filter(Boolean),
-    rating: 5.0,
-    bio: (form.get('bio')||'').toString().trim(),
-  };
-  if(!newItem.name || !newItem.category || !newItem.city || !newItem.phone){ alert('Completá los obligatorios.'); return; }
-  data.push(newItem);
-  saveData(data);
-  postForm.reset();
-  render();
-  alert('¡Publicado! (Guardado localmente en este demo).');
-});
+// ==== EVENTOS ====
+if (qEl) qEl.addEventListener("input", renderFromApi);
+if (catEl) catEl.addEventListener("change", renderFromApi);
+if (cityEl) cityEl.addEventListener("input", renderFromApi);
 
-clearBtn.addEventListener('click', ()=> postForm.reset());
-seedBtn.addEventListener('click', seedDemo);
-resetBtn.addEventListener('click', resetDemo);
+if (postForm) {
+  postForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = new FormData(postForm);
+    const payload = {
+      name: form.get("name")?.toString().trim(),
+      category: form.get("category")?.toString(),
+      city: form.get("city")?.toString().trim(),
+      phone: form.get("phone")?.toString().trim(),
+      email: (form.get("email") || "").toString().trim(),
+      tags: (form.get("tags") || "").toString().split(",").map(t => t.trim()).filter(Boolean),
+      bio: (form.get("bio") || "").toString().trim()
+    };
 
-document.querySelector('#year').textContent = new Date().getFullYear();
-render();
+    if (!payload.name || !payload.category || !payload.city || !payload.phone) {
+      alert("Completá los obligatorios."); return;
+    }
+
+    try {
+      await createProfessionalApi(payload); // queda "pending"
+      postForm.reset();
+      alert("¡Enviado! Queda pendiente de aprobación y aparecerá cuando se apruebe.");
+      await renderFromApi();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Hubo un problema al publicar.");
+    }
+  });
+}
+
+if (clearBtn) clearBtn.addEventListener("click", () => postForm?.reset());
+
+// Footer año
+const yearEl = document.querySelector("#year");
+if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
+// Primera carga
+renderFromApi();

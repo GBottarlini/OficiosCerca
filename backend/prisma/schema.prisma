@@ -4,9 +4,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"            // dev local - cambia a "postgresql" en Render
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 
 model Professional {
   id        Int      @id @default(autoincrement())
